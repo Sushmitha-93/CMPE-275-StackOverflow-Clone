@@ -1,88 +1,26 @@
-const express = require('express')
-const app = express()
-const { sequelize } = require("./models/mysql/index");
-const dotenv = require('dotenv')
+import express from 'express';
+import cors from 'cors';
+import routes from './routes';
+import { sql, mongo } from './loaders/db';
 
-dotenv.config();
+const app = express();
 
-const PORT = process.env.PORT || 8585
+const corsOptions = { origin: true, credentials: true };
+app.use(cors(corsOptions));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(function (req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*"); // update to match the domain you will make the request from
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  next();
+});
+app.use('/api', routes);
 
-app.use(express.json())
+// app.use(express.static('../frontend/build'))
 
-const mongoDbUrl = "mongodb+srv://stackoverflow:stackoverflow@cluster0.rukm9.mongodb.net/stackoverflow?retryWrites=true&w=majority";
-const mongoose = require('mongoose');
-
-var options = {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    maxPoolSize: 50
-};
-
-mongoose.connect(mongoDbUrl, options, (err, res) => {
-    if (err) {
-        console.log(err);
-        console.log(`MongoDB Connection Failed`);
-    } else {
-        console.log(`MongoDB Connected`);
-    }
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, () => {
+  console.log(`StackOverflow server running on port ${PORT}`);
 });
 
-const kafkaConection = require('./kafka/KafkaConnect')
-const kafkaTopics = require('../util/kafkaTopics.json')
-const UserService = require('./services/UserService')
-const PostService = require('./services/PostService')
-const MessageService = require("./services/MessageService")
-const BadgeService = require('./services/BadgeService')
-const TagService = require('./services/TagService')
-
-function handleTopicRequest(topic_name, serviceObject) {
-    kafkaConection.getConsumer(topic_name, (consumer) => {
-        var producer = kafkaConection.getProducer()
-
-        consumer.on('message', function (message) {
-            var data = JSON.parse(message.value)
-            const { payload, correlationId } = data
-            console.log("1. Consumed Data at backend...")
-
-            serviceObject.handle_request(payload, (err, res) => {
-                let payload = {
-                    correlationId: correlationId
-                }
-                if (err) {
-                    console.log("Service failed with Error: ", err);
-                    payload.status = 400;
-                    payload.content = err;
-                }
-
-                if (res) {
-                    payload.status = 200;
-                    payload.content = res;
-                }
-
-                //Send Response to acknowledge topic
-                let payloadForProducer = [
-                    {
-                        topic: kafkaTopics.ACKNOWLEDGE_TOPIC,
-                        messages: JSON.stringify({ "acknowledgementpayload": true, payload }),
-                        partition: 0
-                    }
-                ];
-                producer.send(payloadForProducer, (err, data) => {
-                    if (err) throw err
-                    console.log("2. Sent Acknowledgement ...\n", data)
-                })
-            })
-        })
-    })
-}
-
-handleTopicRequest(kafkaTopics.USERS_TOPIC, UserService);
-handleTopicRequest(kafkaTopics.POSTS_TOPIC, PostService);
-handleTopicRequest(kafkaTopics.MESSAGES_TOPIC, MessageService);
-handleTopicRequest(kafkaTopics.TAGS_TOPIC, TagService);
-
-BadgeService.startBadgeConsumer();
-
-app.listen(PORT, (req, res) => {
-    console.log("Server running on port - ", PORT);
-});
+export default app;

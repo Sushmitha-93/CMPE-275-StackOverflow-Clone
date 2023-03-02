@@ -1,28 +1,30 @@
 {
-  "name": "kafka",
+  "name": "stackoverflow-kafka",
   "version": "1.0.0",
-  "description": "",
+  "description": "Kafka middleware for DB persistence",
   "main": "index.js",
   "scripts": {
-    "test": "mocha || true",
-    "start": "nodemon index.js"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon --experimental-specifier-resolution=node index.js",
+    "start": "node --experimental-specifier-resolution=node index.js "
   },
-  "author": "",
+  "author": "Sakshi, Aniruddha, Sudheendra, Unmesh, Vineet, Siddhant, Soham",
   "license": "ISC",
   "dependencies": {
-    "cookie-parser": "^1.4.6",
-    "cors": "^2.8.5",
+    "bcrypt": "^5.0.1",
     "dotenv": "^16.0.0",
-    "express": "^4.17.3",
-    "express-validator": "^6.14.0",
+    "express": "^4.18.0",
+    "jsonwebtoken": "^8.5.1",
     "kafka-node": "^5.0.0",
-    "nodemon": "^2.0.15",
-    "passport": "^0.4.1",
-    "passport-jwt": "^4.0.0"
+    "mongoose": "^6.3.1",
+    "mysql2": "^2.3.3",
+    "redis": "^4.1.0",
+    "passport-jwt": "^4.0.0",
+    "sequelize": "^6.19.0",
+    "uuid": "^8.3.2"
   },
+  "type": "module",
   "devDependencies": {
-    "chai": "^4.3.6",
-    "chai-http": "^4.3.0",
-    "mocha": "^6.2.3"
+    "nodemon": "^2.0.16"
   }
 }

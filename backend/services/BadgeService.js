@@ -1,127 +1,121 @@
-const { User, Badge, Comment, Post, Tag, Vote } = require("../models/mysql");
-const { sequelize, Sequelize } = require("../models/mysql/index");
-const kafkaConection = require('../kafka/KafkaConnect')
-const kafkaTopics = require('../../util/kafkaTopics.json')
+import Badge from '../models/Badge';
+import User from '../models/User';
 
-//TODO - Only tag based badges should be revoked if they are not eligible anymore but keep this for the end.
-exports.checkAndAwardBadges = async (payload) => {
-    const { action } = payload;
-    var badgeType;
+export const getUserScoreBadges = async (userID) => {
+    const badges = []
+    try {
+        const user = await User.findOne({ where: { id: userID } });
+        const currentBadges = await Badge.destroy({ where: { user_id: userID } })
 
-    if (action === "UPVOTE") {
-        const votedPost = await Post.findOne({
-            where: { id: payload.postId },
-            attributes: ["id", "type", "score", "owner_id"],
-            include: [
-                {
-                    model: Tag,
-                    attributes: ["id", "name"]
-                },
-                {
-                    model: User,
-                    attributes: ["id", "reputation"],
-                    required: true
-                }
-            ]
-        });
-        let tagIds = [];
-        for (const tag of votedPost.Tags) {
-            tagIds.push(tag.id);
-        }
+        // checking for Badge: CURIOUS
+        const userQuestionCount = user.question_count
+        const userAnswerCount = user.answer_count
+        const userReputation = user.reputation
+        const userUpvotes = user.upvotes
+        const userDownvotes = user.downvotes
 
-        //Need to check the tag score for all the tags present in the upvoted post and then award tag badges
-        if (tagIds.length > 0 && votedPost.type === "QUESTION") {
-            let sqlQuery = "select pt.tag_id, t.name, sum(p.score) as score from post p inner join post_tag pt " +
-                "on p.id = pt.post_id inner join tag t on pt.tag_id = t.id where p.owner_id = :owner_id " +
-                "and p.type = 'QUESTION' and pt.tag_id in (:tagIds) group by pt.tag_id";
-            const sqlResults = await sequelize.query(sqlQuery, {
-                replacements: { owner_id: votedPost.owner_id, tagIds: tagIds },
-                type: Sequelize.QueryTypes.SELECT
-            });
-
-            for (const result of sqlResults) {
-                var tagScore = result.score;
-                badgeType = tagScore <= 10 ? "BRONZE" : (tagScore <= 15 ? "SILVER" : "GOLD");
-                createBadgeIfNotPresent(result.name, badgeType, votedPost.owner_id);
+        if (user.question_count !== 0) {
+            if (userQuestionCount <= 2) {
+                badges.push({ badge_name: 'Curious', badge_type: 'bronze' })
+            } else if (userQuestionCount < 5 && userQuestionCount > 2) {
+                badges.push({ badge_name: 'Curious', badge_type: 'silver' })
+            } else {
+                badges.push({ badge_name: 'Curious', badge_type: 'gold' })
             }
         }
 
-        //Need to check for "Popular" badge based on user's reputation
-        const userReputation = votedPost.User.reputation;
-        badgeType = userReputation <= 10 ? "BRONZE" : (userReputation < 15 ? "SILVER" : "GOLD");
-        createBadgeIfNotPresent("Popular", badgeType, votedPost.owner_id);
-
-        //Need to check for "Sportsmanship" badge based on no of upvotes
-        const noOfUpvotes = await Vote.count({ where: { type: "UPVOTE", user_id: payload.upvotedUserId } });
-        badgeType = noOfUpvotes <= 2 ? "BRONZE" : (noOfUpvotes < 5 ? "SILVER" : "GOLD");
-        createBadgeIfNotPresent("Sportsmanship", badgeType, payload.upvotedUserId);
-    }
-
-    if (action === "DOWNVOTE") {
-        const noOfDownvotes = await Vote.count({ where: { type: "DOWNVOTE", user_id: payload.downvotedUserId } });
-        badgeType = noOfDownvotes <= 2 ? "BRONZE" : (noOfDownvotes < 5 ? "SILVER" : "GOLD");
-        createBadgeIfNotPresent("Critic", badgeType, payload.downvotedUserId);
-    }
-
-    if (action === "QUESTION_POSTED") {
-        const noOfQuestions = await Post.count({ where: { type: "QUESTION", owner_id: payload.postedUserId } });
-        badgeType = noOfQuestions <= 2 ? "BRONZE" : (noOfQuestions < 5 ? "SILVER" : "GOLD");
-        createBadgeIfNotPresent("Curious", badgeType, payload.postedUserId);
-    }
-
-    if (action === "ANSWER_POSTED") {
-        const noOfAnswers = await Post.count({ where: { type: "ANSWER", owner_id: payload.answeredUserId } });
-        badgeType = noOfAnswers <= 2 ? "BRONZE" : (noOfAnswers < 5 ? "SILVER" : "GOLD");
-        createBadgeIfNotPresent("Helpfulness", badgeType, payload.answeredUserId);
-    }
-
-    if (action === "QUESTION_VIEWED") {
-        createBadgeIfNotPresent(payload.viewCount > 15 ? "Famous Question" :
-            "Notable Question", "GOLD", payload.ownerId);
-    }
-
-    if (action === "ACCEPTED_ANSWER") {
-        badgeType = payload.newReputation <= 10 ? "BRONZE" : (payload.newReputation < 15 ? "SILVER" : "GOLD");
-        createBadgeIfNotPresent("Popular", badgeType, payload.userId);
-    }
-
-    if (action === "COMMENT_ADDED") {
-        const noOfComments = await Comment.count({ where: { user_id: payload.commentedUserId } });
-        if (noOfComments >= 3) {
-            createBadgeIfNotPresent("Pundit", "SILVER", payload.commentedUserId);
+        if (userAnswerCount !== 0) {
+            if (userAnswerCount <= 2) {
+                badges.push({ badge_name: 'Helpfulness', badge_type: 'bronze' })
+            } else if (userAnswerCount < 5 && userAnswerCount > 2) {
+                badges.push({ badge_name: 'Helpfulness', badge_type: 'silver' })
+            } else {
+                badges.push({ badge_name: 'Helpfulness', badge_type: 'gold' })
+            }
         }
+
+        if (userReputation !== 0) {
+            if (userReputation <= 10) {
+                badges.push({ badge_name: 'Popular', badge_type: 'bronze' })
+            } else if (userReputation < 15 && userReputation > 10) {
+                badges.push({ badge_name: 'Popular', badge_type: 'silver' })
+            } else {
+                badges.push({ badge_name: 'Popular', badge_type: 'gold' })
+            }
+        }
+
+        if (userUpvotes !== 0) {
+            if (userUpvotes <= 2) {
+                badges.push({ badge_name: 'Sportsmanship', badge_type: 'bronze' })
+            } else if (userUpvotes < 5 && userUpvotes > 2) {
+                badges.push({ badge_name: 'Sportsmanship', badge_type: 'silver' })
+            } else {
+                badges.push({ badge_name: 'Sportsmanship', badge_type: 'gold' })
+            }
+        }
+
+        if (userDownvotes !== 0) {
+            if (userUpvotes <= 2) {
+                badges.push({ badge_name: 'Critic', badge_type: 'bronze' })
+            } else if (userUpvotes < 5 && userUpvotes > 2) {
+                badges.push({ badge_name: 'Critic', badge_type: 'silver' })
+            } else {
+                badges.push({ badge_name: 'Critic', badge_type: 'gold' })
+            }
+
+            // TODO: BADGES(NOTABLE, FAMOUS) based on --> Views Count for Question and number of comments
+        }
+
+        console.log('Badges: ', badges, 'ENUM: ', Badge.getAttributes().badge_type.values);
+        // badges.forEach(element => {
+        //     // Sequalize
+        //     console.log();
+        // });
+        //return cb(null, result);
+    } catch (e) {
+        console.log(e);
+        //return cb(e, null)
     }
 }
 
-const createBadgeIfNotPresent = async (name, type, userId) => {
+export const getAllBadges = async (userID) => {
     try {
-        await new Badge({ name: name, type: type, user_id: userId }).save();
-        let badgeTypeCount = type.toLowerCase() + "_badges_count";
-        await User.increment({ [badgeTypeCount]: 1 }, { where: { id: userId } });
+        const userBadges = await Badge.findAll({
+            where: {
+                user_id: userID
+            }
+        })
+        console.log(`User Badges for ${userID} : ${userBadges}`);
+        return userBadges;
+
     } catch (error) {
-        console.log(`User already has ${name} badge in ${type} category. So, not awarding this badge`);
+        console.log(error)
+        return null;
     }
 }
 
-exports.startBadgeConsumer = () => {
-    const badgeConsumer = kafkaConection.getConsumerForBadges(kafkaTopics.BADGE_CALCULATIONS_TOPIC);
-    badgeConsumer.on('message', (message) => {
-        var data = JSON.parse(message.value);
-        const { payload } = data;
-        console.log("Message received in badges topic with payload: ", payload);
-        this.checkAndAwardBadges(payload);
-    });
+
+// FOR TESTING AND ADDING BADGES THROUGH POSTMAN/Manual call ONLY
+export const postABadge = async (badgeData) => {
+    const { badge_name, badge_type, user_id } = badgeData
+    console.log(badgeData, typeof (badgeData.user_id));
+    try {
+        const badge = await Badge.create({
+            badge_name: badgeData.badge_name,
+            badge_type: badgeData.badge_type,
+            user_id: badgeData.user_id
+        });
+        var message = {
+            message: 'badge added!',
+            badge: badge
+        }
+        return message
+    } catch (e) {
+        console.log(e)
+        return null;
+    }
 }
 
-exports.pushIntoBadgeTopic = (payload) => {
-    var producer = kafkaConection.getProducer();
-    producer.on('ready', () => {
-        let payloadForProducer = [
-            { topic: kafkaTopics.BADGE_CALCULATIONS_TOPIC, messages: JSON.stringify({ payload }), partition: 0 }
-        ];
-        producer.send(payloadForProducer, (err, data) => {
-            if (err) console.log("ERR - ", err)
-            else console.log("DATA - ", data)
-        })
-    })
+export const getQuestionScoreBadges = async (user) => {
+
 }

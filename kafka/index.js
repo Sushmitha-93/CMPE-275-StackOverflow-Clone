@@ -1,34 +1,19 @@
-const express = require("express");
+import express from 'express'
+import dotenv from 'dotenv'
+
+dotenv.config()
+
+import { sql, mongo } from './loaders/db'
+
+import './consumers/authConsumer'
+import './consumers/tagConsumer'
+import './consumers/postConsumer'
+import './consumers/userConsumer'
+import './consumers/adminConsumer'
+
 const app = express();
-const dotenv = require("dotenv");
-const cookieParser = require("cookie-parser");
-const cors = require('cors')
-const PORT = process.env.PORT || 4000;
 
-dotenv.config();
-app.use(express.json());
-
-app.use(cors({
-  origin: 'http://localhost:3000',
-  credentials: true,          //access-control-allow-credentials:true
-  optionSuccessStatus: 200,
-}))
-
-
-// use cookie parser to parse request headers
-app.use(cookieParser()); 
-
-let passport = require("passport");
-require("./Utils/passport")(passport);
-
-app.use("/api/users", require("./routes/userRoutes"));
-app.use("/api/post", require("./routes/postRoutes"));
-app.use("/api/admin", require("./routes/adminRoutes"));
-app.use("/api/chat", require("./routes/messageRoutes"));
-app.use("/api/tags", require("./routes/tagRoutes"));
-
-app.listen(PORT, (req, res) => {
-  console.log("Kafka middleare ");
+const PORT = process.env.PORT || 8081;
+app.listen(PORT, () => {
+  console.log(`Kafka server running on port ${PORT}`);
 });
-
-module.exports = app
