@@ -9,3 +9,5 @@
 - **Cloud Services**: AWS EC2, Load Balancer
 - **Test Framework**: Mocha
 
+## Architecture Diagram
+![Architecture Diagram.png](https://github.com/Sushmitha-93/CMPE-275-StackOverflow-Clone/blob/main/Architecture%20Diagram.png)
