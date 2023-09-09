@@ -3,9 +3,9 @@
 ## Tech Stack used
 - **Frontend**: React.js:
 - **Backend** : Node.js, Express.js, Mongoose ORM
-- **Database**: MonogDB, Redis
+- **Database**: MonogDB, AWS S3, Redis
 - **Message Queue**: Apache Kafka
 - **Performance Testing**: JMeter, Grafana
-- **Cloud Services**: AWS EC2, S3
+- **Cloud Services**: AWS EC2, Load Balancer
 - **Test Framework**: Mocha
 
