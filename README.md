@@ -1,5 +1,5 @@
 # Distributed StackOverflow-Clone
-This project is a clone of the Stack Overflow website, meticulously designed for distributed scalability. The backbone of our system is a robust backend seamlessly integrated with Redis Cache, ensuring rapid data retrieval and response times. To manage concurrent interactions effectively, we've implemented Kafka messaging, enabling smooth communication between various parts of the application. This combination of technologies creates a high-performance and scalable platform, capable of handling a substantial user load with ease.
+This project is a clone of the Stack Overflow website, meticulously designed for distributed scalability. The backbone of our system is a robust backend seamlessly integrated with **Redis Cache**, ensuring rapid data retrieval and response times. To manage concurrent interactions effectively, we've implemented **Kafka** messaging, enabling smooth communication between various parts of the application. This combination of technologies creates a high-performance and scalable platform, **capable of handling a substantial user load with ease**.
 
 ## Table of Contents
 - [Tech Stack](#tech-stack)
