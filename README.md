@@ -4,10 +4,10 @@ This is a clone of StackOverflow website using MERN stack.
 ## Table of Contents
 - [Tech Stack](#tech-stack)
 - [Heavyweight Resource Handling](#heavy-weight-resource-handling)
-- Object Management Policy
-- Frontend
-- Backend
-- Getting Started
+- [Object Management Policy](#object-management-policy)
+- [Frontend](#frontend)
+- [Backend](#backend)
+- [Getting Started](#getting-started)
 
 ## Architecture Diagram
 ![Architecture Diagram.png](https://github.com/Sushmitha-93/CMPE-275-StackOverflow-Clone/blob/main/Architecture%20Diagram.png)
@@ -44,3 +44,12 @@ This is a clone of StackOverflow website using MERN stack.
 ## Backend
 - Objects like User, Post, Post_tag, Comment, Bookmark, Badge, Vote & Tag are implemented using SQL due to inter-dependency and complex joins.
 - MongoDB is used for historical data and large tables like Messages, PostHistory & ReputationHistory. MongoDB's document-centric approach is chosen for high throughput and scalability.
+- JWT authentication is implemented for authorized API calls. Private routes are created for admin access only
+
+## Getting Started
+1. Clone the repository
+2. Install dependencies in backend and frontend directories3. 
+4. Create MySQL database called stackoverflow
+5. Start Kafka and Redis
+6. Update connections in .env files in backend and frontend
+7. npm start
